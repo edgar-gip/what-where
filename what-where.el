@@ -34,8 +34,8 @@
 (require 'cl-lib)
 
 (defconst what-where-default-providers
-  '(what-where-dummy)
-  "Default set of providers for `what-where`.")
+  '(what-where/numbers-provider)
+  "Default set of providers for `what-where'.")
 
 (defgroup what-where ()
   "Customization options for `what-where-mode'.")
@@ -68,31 +68,6 @@
 (defun what-where-add-item (item)
   "Add ITEM to `what-where-items'."
   (push item what-where-items))
-
-(defun what-where-dummy ()
-  "Dummy `what-where' provider."
-  (let ((item0 (make-what-where-item :focus-start (- (point) 2)
-                                     :focus-end (+ (point) 2)
-                                     :type "Type0"
-                                     :contents "Contents0"
-                                     :score 0.0
-                                     :action #'(lambda ()
-                                                 (message "Action0"))))
-        (item1 (make-what-where-item :focus-start (- (point) 3)
-                                     :focus-end (+ (point) 3)
-                                     :type "Type1"
-                                     :contents "Contents1"
-                                     :score 0.1
-                                     :action #'(lambda ()
-                                                 (message "Action1"))))
-        (item2 (make-what-where-item :focus-start (- (point) 4)
-                                     :focus-end (+ (point) 4)
-                                     :type "Type2"
-                                     :contents "Contents2"
-                                     :score 0.2)))
-    (what-where-add-item item0)
-    (what-where-add-item item1)
-    (what-where-add-item item2)))
 
 (defvar what-where-source-buffer nil
   "Source buffer that `what-where' was called from.")
@@ -201,6 +176,8 @@
   :init-value nil
   :lighter nil
   :keymap what-where-mode-map)
+
+(require 'what-where/numbers)
 
 (provide 'what-where)
 
