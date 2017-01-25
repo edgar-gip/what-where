@@ -32,6 +32,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'popup)
 
 (defconst what-where-default-providers
   '(what-where/numbers-provider)
@@ -50,13 +51,20 @@
   "Face to highlight the focus of the current `what-where' item."
   :group 'task-warrior)
 
+(cl-defstruct what-where-action
+  shortcut
+  description
+  function
+  feedback
+  is-terminal-p)
+
 (cl-defstruct what-where-item
   focus-start
   focus-end
   type
   contents
   score
-  action)
+  actions)
 
 (defvar what-where-items ()
   "Current set of items found by `what-where'.")
@@ -103,6 +111,27 @@
           (move-overlay what-where-focus-overlay
                         focus-start focus-end what-where-source-buffer))))))
 
+(defmacro with-what-where-current-item (item-symbol else-clause &rest body)
+  "Execute BODY with ITEM-SYMBOL bound to the currently selected item. If
+unset, execute ELSE-CLAUSE."
+  (declare (indent 2))
+  (let ((id-symbol (gensym)))
+    `(let ((,id-symbol (tabulated-list-get-id)))
+       (if (null ,id-symbol)
+           ,else-clause
+         (let ((,item-symbol (nth ,id-symbol what-where-items)))
+           ,@body)))))
+
+(defmacro with-what-where-current-item* (item-symbol &rest body)
+  "Execute BODY with ITEM-SYMBOL bound to the currently selected item, which is
+assumed to exist."
+  (declare (indent 1))
+  (let ((id-symbol (gensym)))
+    `(let ((,id-symbol (tabulated-list-get-id)))
+       (cl-assert ,id-symbol)
+       (let ((,item-symbol (nth ,id-symbol what-where-items)))
+         ,@body))))
+
 (defun what-where-report-refresh ()
   "Refresh the display in the `what-where-report-mode' window."
   (setq tabulated-list-entries nil)
@@ -114,21 +143,106 @@
             tabulated-list-entries)
       (incf i))))
 
-(defun what-where-report-goto ()
-  "Trigger the action for the current item in `what-where-report-mode'."
+(defun what-where-execute-action (action)
+  "Execute the ACTION."
+  (let ((callback (what-where-action-function action))
+        (feedback (what-where-action-feedback action))
+        (is-terminal-p (what-where-action-is-terminal-p action)))
+    (cl-assert callback)
+    (funcall callback)
+    (when feedback
+      (message feedback))
+    (when is-terminal-p
+      (quit-window))))
+
+(defun what-where-report-shortcut ()
+  "Execute the action denoted by the last pressed key on the current item."
   (interactive)
-  (let ((id (tabulated-list-get-id)))
-    (when id
-      (let* ((item (nth id what-where-items))
-             (action (what-where-item-action item)))
-        (if action
-            (funcall action)
-          (message "No action defined"))))))
+  (with-what-where-current-item item
+      (message "No current item")
+    (let* ((key last-command-event)
+           (actions (what-where-item-actions item))
+           (action (cl-find-if #'(lambda (action)
+                                   (eq (what-where-action-shortcut action) key))
+                               actions)))
+      (if (null action)
+          (message "Action '%c' not defined in current item" key)
+        (what-where-execute-action action)))))
+
+(defvar what-where-popup-menu nil
+  "Currently displayed popup menu on the report screen, if any.")
+
+(defvar what-where-popup-menu-keymap
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map popup-menu-keymap)
+    (define-key map (kbd "<return>") 'popup-select)
+    (define-key map (kbd "C-g") 'what-where-popup-abort)
+    (define-key map (kbd "q") 'what-where-popup-abort)
+    map)
+  "Keymap for the popup menu on the `what-where-report-mode' buffer.")
+
+(defun what-where-popup-abort ()
+  "Abort the selection from the popup menu in `what-where-report-mode'."
+  (interactive)
+  (popup-delete what-where-popup-menu))
+
+(defun what-where-popup-shortcut (keyseq binding)
+  "Process KEYSEQ as a potential shortcut from the popup menu in
+`what-where-report-mode'."
+  (when (= (length keyseq) 1)
+    (with-what-where-current-item* item
+      (let* ((key (string-to-char keyseq))
+             (actions (what-where-item-actions item))
+             (action (cl-find-if
+                      #'(lambda (action)
+                          (eq (what-where-action-shortcut action) key))
+                      actions)))
+        (if (null action)
+            (message "Action '%c' not defined in current item" key)
+          (what-where-execute-action action)
+          (popup-delete what-where-popup-menu))))))
+
+(defun what-where-report-popup ()
+  "Pop up a menu with the actions on the current item in
+`what-where-report-mode'."
+  (interactive)
+  (with-what-where-current-item item
+      (message "No current item")
+    (let* ((actions (what-where-item-actions item))
+           (descriptions (mapcar #'what-where-action-description actions)))
+      (if (null actions)
+          (message "No actions defined on current item")
+        (setf what-where-popup-menu
+              (popup-menu* descriptions
+                           :point (+ (line-beginning-position) 10)
+                           :keymap what-where-popup-menu-keymap
+                           :nowait t))
+        (let* ((selected-description
+                (unwind-protect
+                    (popup-menu-event-loop what-where-popup-menu
+                                           what-where-popup-menu-keymap
+                                           #'what-where-popup-shortcut)
+                  (progn
+                    (popup-delete what-where-popup-menu)
+                    (setf what-where-popup-menu nil))))
+               (selected-action
+                (and selected-description
+                     (cl-find-if #'(lambda (action)
+                                     (eq (what-where-action-description action)
+                                         selected-description))
+                                 actions))))
+          (when selected-action
+            (what-where-execute-action selected-action)))))))
 
 (defvar what-where-report-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map (kbd "<return>") 'what-where-report-goto)
+    (define-key map (kbd "<return>") 'what-where-report-popup)
+    (dotimes (i (1+ (- ?z ?a)))
+      (let* ((key (+ ?a i))
+             (sequence (string key)))
+        (unless (lookup-key map sequence)
+          (define-key map sequence 'what-where-report-shortcut))))
     map)
   "Local keymap for `what-where-report-mode'.")
 

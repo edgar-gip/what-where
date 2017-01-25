@@ -89,15 +89,30 @@ which starts at FOCUS-START and ends at FOCUS-END."
              (month (nth 4 matched-time))
              (contents (format what-where/numbers-time-format
                                year month day hour minutes seconds))
-             (action `(lambda ()
-                        (kill-new ,contents)
-                        (message "Copied '%s' to kill ring." ,contents)))
+             (copy-action (make-what-where-action
+                           :shortcut ?c :description "(C)opy"
+                           :function `(lambda ()
+                                        (kill-new ,contents))
+                           :feedback (format "Copied '%s' to kill ring."
+                                             contents)
+                           :is-terminal-p t))
+             (replace-action (make-what-where-action
+                              :shortcut ?r :description "(R)eplace"
+                              :function
+                              `(lambda ()
+                                 (with-current-buffer what-where-source-buffer
+                                   (save-excursion
+                                     (delete-region ,focus-start ,focus-end)
+                                     (goto-char ,focus-start)
+                                     (insert ,contents))))
+                              :is-terminal-p t))
              (item (make-what-where-item :focus-start focus-start
                                          :focus-end focus-end
                                          :type "Timestamp"
                                          :contents contents
                                          :score 1.0
-                                         :action action)))
+                                         :actions (list copy-action
+                                                        replace-action))))
         (what-where-add-item item)))))
 
 (provide 'what-where/numbers)
