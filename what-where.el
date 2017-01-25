@@ -92,15 +92,16 @@
 
 (defun what-where-move-focus-overlay ()
   "Move the overlay for the focus of the current `what-where' item."
-  (unless what-where-focus-overlay
-    (setf what-where-focus-overlay (what-where-create-focus-overlay)))
-  (let ((id (tabulated-list-get-id)))
-    (when id
-      (let* ((item (nth id what-where-items))
-             (focus-start (what-where-item-focus-start item))
-             (focus-end (what-where-item-focus-end item)))
-        (move-overlay what-where-focus-overlay
-                      focus-start focus-end what-where-source-buffer)))))
+  (when (buffer-live-p what-where-source-buffer)
+    (unless what-where-focus-overlay
+      (setf what-where-focus-overlay (what-where-create-focus-overlay)))
+    (let ((id (tabulated-list-get-id)))
+      (when id
+        (let* ((item (nth id what-where-items))
+               (focus-start (what-where-item-focus-start item))
+               (focus-end (what-where-item-focus-end item)))
+          (move-overlay what-where-focus-overlay
+                        focus-start focus-end what-where-source-buffer))))))
 
 (defun what-where-report-refresh ()
   "Refresh the display in the `what-where-report-mode' window."
