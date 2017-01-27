@@ -51,6 +51,11 @@
   "Face to highlight the focus of the current `what-where' item."
   :group 'task-warrior)
 
+(defface what-where-filtered-item-face
+  '((t :foreground "dark gray"))
+  "Face to highlight the focus of the current `what-where' item."
+  :group 'task-warrior)
+
 (cl-defstruct what-where-action
   shortcut
   description
@@ -63,19 +68,33 @@
   focus-end
   type
   contents
-  score
-  actions)
+  features
+  actions
+  (score nil))
 
 (defvar what-where-items ()
   "Current set of items found by `what-where'.")
 
+(defvar what-where-selected-item ()
+  "First item selected by the user among those in `what-where-items'.")
+
 (defun what-where-clear-items ()
   "Clear the set of items in `what-where-items'."
-  (setf what-where-items ()))
+  (setf what-where-items ())
+  (setf what-where-selected-item nil))
 
 (defun what-where-add-item (item)
   "Add ITEM to `what-where-items'."
   (push item what-where-items))
+
+(defun what-where-generate-items ()
+  "Generate and score the set of items for the current point."
+  (when what-where-items
+    (what-where/ranker-update))
+  (what-where-clear-items)
+  (what-where-set-source-buffer (current-buffer))
+  (run-hooks 'what-where-providers)
+  (what-where/ranker-score-items))
 
 (defvar what-where-source-buffer nil
   "Source buffer that `what-where' was called from.")
@@ -137,14 +156,21 @@ assumed to exist."
   (setq tabulated-list-entries nil)
   (let ((i 0))
     (dolist (item what-where-items)
-      (push (list i (vector (what-where-item-type item)
-                            (what-where-item-contents item)
-                            (number-to-string (what-where-item-score item))))
-            tabulated-list-entries)
-      (incf i))))
+      (let ((fmt (if (< (what-where-item-score item) 0)
+                     #'(lambda (s)
+                         (propertize s 'font-lock-face
+                                     'what-where-filtered-item-face))
+                   #'identity)))
+        (push (list i (vector (funcall fmt (what-where-item-type item))
+                              (funcall fmt (what-where-item-contents item))
+                              (funcall fmt
+                                       (number-to-string
+                                        (what-where-item-score item)))))
+              tabulated-list-entries)
+        (incf i)))))
 
-(defun what-where-execute-action (action)
-  "Execute the ACTION."
+(defun what-where-execute-action (action item)
+  "Execute the ACTION (which comes from ITEM)."
   (let ((callback (what-where-action-function action))
         (feedback (what-where-action-feedback action))
         (is-terminal-p (what-where-action-is-terminal-p action)))
@@ -152,6 +178,8 @@ assumed to exist."
     (funcall callback)
     (when feedback
       (message feedback))
+    (unless what-where-selected-item
+      (setf what-where-selected-item item))
     (when is-terminal-p
       (quit-window))))
 
@@ -167,7 +195,7 @@ assumed to exist."
                                actions)))
       (if (null action)
           (message "Action '%c' not defined in current item" key)
-        (what-where-execute-action action)))))
+        (what-where-execute-action action item)))))
 
 (defvar what-where-popup-menu nil
   "Currently displayed popup menu on the report screen, if any.")
@@ -199,7 +227,7 @@ assumed to exist."
                       actions)))
         (if (null action)
             (message "Action '%c' not defined in current item" key)
-          (what-where-execute-action action)
+          (what-where-execute-action action item)
           (popup-delete what-where-popup-menu))))))
 
 (defun what-where-report-popup ()
@@ -232,7 +260,7 @@ assumed to exist."
                                          selected-description))
                                  actions))))
           (when selected-action
-            (what-where-execute-action selected-action)))))))
+            (what-where-execute-action selected-action item)))))))
 
 (defvar what-where-report-mode-map
   (let ((map (make-sparse-keymap)))
@@ -265,9 +293,7 @@ assumed to exist."
 (defun what-where (nofocus)
   "Display what you look at and where you are."
   (interactive "P")
-  (what-where-clear-items)
-  (what-where-set-source-buffer (current-buffer))
-  (run-hooks 'what-where-providers)
+  (what-where-generate-items)
   (let ((report-buffer (get-buffer-create "*What/Where*")))
     (with-current-buffer report-buffer
       (what-where-report-mode)
@@ -293,6 +319,7 @@ assumed to exist."
   :keymap what-where-mode-map)
 
 (require 'what-where/numbers)
+(require 'what-where/ranker)
 
 (provide 'what-where)
 

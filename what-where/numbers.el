@@ -79,45 +79,60 @@ FOCUS-START and ends at FOCUS-END."
   "Generate possible timestamp-related `what-where-items' for MATCHED-NUMBER,
 which starts at FOCUS-START and ends at FOCUS-END."
   (let* ((matched-time (decode-time matched-number what-where/numbers-timezone))
-         (year (nth 5 matched-time)))
-    (when (and (<= what-where/numbers-time-min-year year
-                   what-where/numbers-time-max-year))
-      (let* ((seconds (nth 0 matched-time))
-             (minutes (nth 1 matched-time))
-             (hour (nth 2 matched-time))
-             (day (nth 3 matched-time))
-             (month (nth 4 matched-time))
-             (contents (format what-where/numbers-time-format
-                               year month day hour minutes seconds))
-             (copy-action (make-what-where-action
-                           :shortcut ?c :description "(C)opy"
-                           :function `(lambda ()
-                                        (kill-new ,contents))
-                           :feedback (format "Copied '%s' to kill ring."
-                                             contents)
-                           :is-terminal-p t))
-             (replace-action (make-what-where-action
-                              :shortcut ?r :description "(R)eplace"
-                              :function
-                              `(lambda ()
-                                 (with-current-buffer what-where-source-buffer
-                                   (save-excursion
-                                     (delete-region ,focus-start ,focus-end)
-                                     (goto-char ,focus-start)
-                                     (insert ,contents))))
-                              :is-terminal-p t))
-             (item (make-what-where-item :focus-start focus-start
-                                         :focus-end focus-end
-                                         :type "Timestamp"
-                                         :contents contents
-                                         :score 1.0
-                                         :actions (list copy-action
-                                                        replace-action))))
-        (what-where-add-item item)))))
+         (year (nth 5 matched-time))
+         (seconds (nth 0 matched-time))
+         (minutes (nth 1 matched-time))
+         (hour (nth 2 matched-time))
+         (day (nth 3 matched-time))
+         (month (nth 4 matched-time))
+         (contents (format what-where/numbers-time-format
+                           year month day hour minutes seconds))
+         (features (list (cons 'provider:numers 1)
+                         (cons 'type:timestamp 1)
+                         (cons 'actions:can-copy 1)
+                         (cons 'actions:can-replace 1)
+                         (cons (intern
+                                (format "numbers:timestamp:log_year:%d"
+                                        (truncate (log (1+ (abs year)) 10))))
+                               1)
+                         (cons (intern
+                                (format "numbers:timestamp:log_rel_year:%d"
+                                        (truncate (log (1+ (abs (- year 1970)))
+                                                       10))))
+                               1)
+                         (cons 'numbers:timestamp:in-year-range
+                               (if (<= what-where/numbers-time-min-year year
+                                       what-where/numbers-time-max-year)
+                                   1 0))))
+         (copy-action (make-what-where-action
+                       :shortcut ?c :description "(C)opy"
+                       :function `(lambda ()
+                                    (kill-new ,contents))
+                       :feedback (format "Copied '%s' to kill ring."
+                                         contents)
+                       :is-terminal-p t))
+         (replace-action (make-what-where-action
+                          :shortcut ?r :description "(R)eplace"
+                          :function
+                          `(lambda ()
+                             (with-current-buffer what-where-source-buffer
+                               (save-excursion
+                                 (delete-region ,focus-start ,focus-end)
+                                 (goto-char ,focus-start)
+                                 (insert ,contents))))
+                          :is-terminal-p t))
+         (item (make-what-where-item :focus-start focus-start
+                                     :focus-end focus-end
+                                     :type "Timestamp"
+                                     :contents contents
+                                     :features features
+                                     :actions (list copy-action
+                                                    replace-action))))
+        (what-where-add-item item)))
 
 (provide 'what-where/numbers)
 
-;;; what-where.el ends here
+;;; what-where/numbers.el ends here
 
 ;;; Local Variables:
 ;;; coding: utf-8
