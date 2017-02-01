@@ -33,6 +33,7 @@
 
 (require 'cl-lib)
 (require 'popup)
+(require 'what-where/utils)
 
 (defconst what-where-default-providers
   '(what-where/numbers-provider)
@@ -44,7 +45,8 @@
 (defcustom what-where-providers what-where-default-providers
   "Set of providers for `what-where'."
   :type 'hook
-  :options what-where-default-providers)
+  :options what-where-default-providers
+  :group 'what-where)
 
 (cl-defstruct what-where-action
   shortcut

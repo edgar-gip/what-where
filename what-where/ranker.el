@@ -40,6 +40,12 @@
   :type 'float
   :group 'what-where)
 
+(defcustom what-where/ranker-update-when-none-selected nil
+  "Whether the `what-where/ranker' model needs to be updated when no selection
+was made for a particular focus."
+  :type 'boolean
+  :group 'what-where)
+
 (cl-defstruct what-where/ranker-model
   epochs
   current-weights
@@ -105,53 +111,55 @@ POSITIVE-FEATURES and NEGATIVE-FEATURES."
 (defun what-where/ranker-update ()
   "Update the MODEL given that, out of `what-where-items',
 `what-where-selected-item' was chosen."
-  ;; Find the score of the selected item (if any), and of the highest scored
-  ;; non-selected item (if any).
-  (let ((selected-item-score
-         (and what-where-selected-item
-              (what-where/ranker-score-item what-where-selected-item t)))
-        (best-negative-item nil)
-        (best-negative-item-score nil))
-    (dolist (item what-where-items)
-      (unless (eq item what-where-selected-item)
-        (let ((score (what-where/ranker-score-item item t)))
-          (when (or (null best-negative-item-score)
-                    (> score best-negative-item-score))
-            (setf best-negative-item item)
-            (setf best-negative-item-score score)))))
-    ;; Update the model (current weights) following the subgradient.
-    (cond
-     ((and what-where-selected-item best-negative-item)
+  (when (or what-where/ranker-update-when-none-selected
+            what-where-selected-item)
+    ;; Find the score of the selected item (if any), and of the highest scored
+    ;; non-selected item (if any).
+    (let ((selected-item-score
+           (and what-where-selected-item
+                (what-where/ranker-score-item what-where-selected-item t)))
+          (best-negative-item nil)
+          (best-negative-item-score nil))
+      (dolist (item what-where-items)
+        (unless (eq item what-where-selected-item)
+          (let ((score (what-where/ranker-score-item item t)))
+            (when (or (null best-negative-item-score)
+                      (> score best-negative-item-score))
+              (setf best-negative-item item)
+              (setf best-negative-item-score score)))))
+      ;; Update the model (current weights) following the subgradient.
       (cond
-       ((< selected-item-score
-           (+ best-negative-item-score what-where/ranker-margin))
-        (what-where/ranker-update*
-         (what-where-item-features what-where-selected-item)
-         (what-where-item-features best-negative-item)))
-       ((< selected-item-score 0)
-        (what-where/ranker-update*
-         (what-where-item-features what-where-selected-item) ()))))
-     (what-where-selected-item
-      (when (< selected-item-score 0)
-        (what-where/ranker-update*
-         (what-where-item-features what-where-selected-item) ())))
-     (best-negative-item
-      (when (> best-negative-item-score (- what-where/ranker-margin))
-        (what-where/ranker-update*
-         () (what-where-item-features best-negative-item)))))
-    ;; Add the current weights to the average ones, and count one more epoch.
-    (let ((current-weights (what-where/ranker-model-current-weights
-                            what-where/ranker-model))
-          (average-weights (what-where/ranker-model-average-weights
-                            what-where/ranker-model)))
-      (maphash #'(lambda (feature weight)
-                   (let ((new-weight (+ (gethash feature average-weights 0.0)
-                                        weight)))
-                     (if (zerop new-weight)
-                         (remhash feature average-weights)
-                       (puthash feature new-weight average-weights))))
-               current-weights))
-    (incf (what-where/ranker-model-epochs what-where/ranker-model))))
+       ((and what-where-selected-item best-negative-item)
+        (cond
+         ((< selected-item-score
+             (+ best-negative-item-score what-where/ranker-margin))
+          (what-where/ranker-update*
+           (what-where-item-features what-where-selected-item)
+           (what-where-item-features best-negative-item)))
+         ((< selected-item-score 0)
+          (what-where/ranker-update*
+           (what-where-item-features what-where-selected-item) ()))))
+       (what-where-selected-item
+        (when (< selected-item-score 0)
+          (what-where/ranker-update*
+           (what-where-item-features what-where-selected-item) ())))
+       (best-negative-item
+        (when (> best-negative-item-score (- what-where/ranker-margin))
+          (what-where/ranker-update*
+           () (what-where-item-features best-negative-item)))))
+      ;; Add the current weights to the average ones, and count one more epoch.
+      (let ((current-weights (what-where/ranker-model-current-weights
+                              what-where/ranker-model))
+            (average-weights (what-where/ranker-model-average-weights
+                              what-where/ranker-model)))
+        (maphash #'(lambda (feature weight)
+                     (let ((new-weight (+ (gethash feature average-weights 0.0)
+                                          weight)))
+                       (if (zerop new-weight)
+                           (remhash feature average-weights)
+                         (puthash feature new-weight average-weights))))
+                 current-weights))
+      (incf (what-where/ranker-model-epochs what-where/ranker-model)))))
 
 (provide 'what-where/ranker)
 

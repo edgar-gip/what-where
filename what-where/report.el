@@ -210,6 +210,12 @@ assumed to exist."
     map)
   "Local keymap for `what-where/report-mode'.")
 
+(defun what-where/report-sort-by-score (a b)
+  "Sort items A and B by the contents of their \"Score\" column."
+  (let ((a-value (string-to-number (aref (cl-second a) 2)))
+        (b-value (string-to-number (aref (cl-second b) 2))))
+    (< a-value b-value)))
+
 (define-derived-mode what-where/report-mode
   tabulated-list-mode "What/Where"
   "Major mode for the results of a `what-where' query."
@@ -218,7 +224,7 @@ assumed to exist."
   :abbrev-table nil
   (setq tabulated-list-format [("Type" 10 t)
                                ("Contents" 50 nil)
-                               ("Score" 10 t)])
+                               ("Score" 10 what-where/report-sort-by-score)])
   (setq tabulated-list-sort-key (cons "Score" t))
   (tabulated-list-init-header)
   (hl-line-mode)
