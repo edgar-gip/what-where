@@ -92,7 +92,11 @@ been selected for the current query."
   (what-where-clear-items)
   (what-where-set-source-buffer (current-buffer))
   (run-hooks 'what-where-providers)
-  (what-where/ranker-score-items))
+  (what-where/ranker-score-items)
+  (setf what-where-items
+        (sort what-where-items
+              #'(lambda (a b)
+                  (> (what-where-item-score a) (what-where-item-score b))))))
 
 (defvar what-where-source-buffer nil
   "Source buffer that `what-where' was called from.")

@@ -28,15 +28,47 @@
 
 ;;; Code:
 
+(defcustom what-where/report-show-negative-by-default nil
+  "Whether to show items with negative-scores by default in
+`what-where/report'."
+  :type 'boolean
+  :group 'what-where)
+
 (defface what-where/report-focus-face
   '((t :background "green"))
   "Face to highlight the focus of the current `what-where/report' item."
-  :group 'task-warrior)
+  :group 'what-where)
 
 (defface what-where/report-filtered-item-face
   '((t :foreground "dark gray"))
   "Face to highlight the focus of the current `what-where/report' item."
-  :group 'task-warrior)
+  :group 'what-where)
+
+(defmacro with-what-where/report-current-item (item-symbol ellipsis-clause
+                                               nil-clause &rest body)
+  "Execute BODY with ITEM-SYMBOL bound to the currently selected item. If
+unset, execute ELLIPSIS-CLAUSE or NIL-CLAUSE."
+  (declare (indent 3))
+  (let ((id-symbol (gensym)))
+    `(let ((,id-symbol (tabulated-list-get-id)))
+       (cl-case ,id-symbol
+        ((nil)
+         ,nil-clause)
+        ((ellipsis)
+         ,ellipsis-clause)
+        (otherwise
+         (let ((,item-symbol (nth ,id-symbol what-where-items)))
+           ,@body))))))
+
+(defmacro with-what-where/report-current-item* (item-symbol &rest body)
+  "Execute BODY with ITEM-SYMBOL bound to the currently selected item, which is
+assumed to exist."
+  (declare (indent 1))
+  (let ((id-symbol (gensym)))
+    `(let ((,id-symbol (tabulated-list-get-id)))
+       (cl-assert (and ,id-symbol (not (eq ,id-symbol 'ellipsis))))
+       (let ((,item-symbol (nth ,id-symbol what-where-items)))
+         ,@body))))
 
 (defvar what-where/report-focus-overlay nil
   "Overlay to highlight the focus of the current `what-where/report' item.")
@@ -58,53 +90,65 @@
     (unless what-where/report-focus-overlay
       (setf what-where/report-focus-overlay
             (what-where/report-create-focus-overlay)))
-    (let ((id (tabulated-list-get-id)))
-      (when id
-        (let* ((item (nth id what-where-items))
-               (focus-start (what-where-item-focus-start item))
-               (focus-end (what-where-item-focus-end item)))
+    (with-what-where/report-current-item item
+        nil nil
+        (let ((focus-start (what-where-item-focus-start item))
+              (focus-end (what-where-item-focus-end item)))
           (move-overlay what-where/report-focus-overlay
-                        focus-start focus-end what-where-source-buffer))))))
+                        focus-start focus-end what-where-source-buffer)))))
 
-(defmacro with-what-where/report-current-item (item-symbol else-clause
-                                               &rest body)
-  "Execute BODY with ITEM-SYMBOL bound to the currently selected item. If
-unset, execute ELSE-CLAUSE."
-  (declare (indent 2))
-  (let ((id-symbol (gensym)))
-    `(let ((,id-symbol (tabulated-list-get-id)))
-       (if (null ,id-symbol)
-           ,else-clause
-         (let ((,item-symbol (nth ,id-symbol what-where-items)))
-           ,@body)))))
-
-(defmacro with-what-where/report-current-item* (item-symbol &rest body)
-  "Execute BODY with ITEM-SYMBOL bound to the currently selected item, which is
-assumed to exist."
-  (declare (indent 1))
-  (let ((id-symbol (gensym)))
-    `(let ((,id-symbol (tabulated-list-get-id)))
-       (cl-assert ,id-symbol)
-       (let ((,item-symbol (nth ,id-symbol what-where-items)))
-         ,@body))))
+(defvar what-where/report-show-negative nil
+  "Whether to show items with negative-scores in `what-where/report'.")
 
 (defun what-where/report-refresh ()
   "Refresh the display in the `what-where/report' window."
   (setq tabulated-list-entries nil)
-  (let ((i 0))
-    (dolist (item what-where-items)
-      (let ((fmt (if (< (what-where-item-score item) 0)
-                     #'(lambda (s)
-                         (propertize s 'font-lock-face
-                                     'what-where/report-filtered-item-face))
-                   #'identity)))
+  (let ((threshold
+         (and (not what-where/report-show-negative)
+              what-where-items
+              (if (> (what-where-item-score (cl-first what-where-items)) 0)
+                  0
+                (what-where-item-score (cl-first what-where-items)))))
+        (i 0)
+        (remaining-items what-where-items))
+    (while (and remaining-items
+                (or (null threshold)
+                    (>= (what-where-item-score (cl-first remaining-items))
+                        threshold)))
+      (let* ((item (cl-first remaining-items))
+             (fmt (if (< (what-where-item-score item) 0)
+                      #'(lambda (s)
+                          (propertize s 'font-lock-face
+                                      'what-where/report-filtered-item-face))
+                    #'identity)))
         (push (list i (vector (funcall fmt (what-where-item-type item))
                               (funcall fmt (what-where-item-contents item))
                               (funcall fmt
                                        (number-to-string
                                         (what-where-item-score item)))))
               tabulated-list-entries)
-        (incf i)))))
+        (incf i)
+        (setf remaining-items (cl-rest remaining-items))))
+    (when remaining-items
+      (push (list 'ellipsis
+                  (vector ""
+                          (propertize "..." 'font-lock-face
+                                      'what-where/report-filtered-item-face)
+                          ""))
+            tabulated-list-entries)))
+  (setf tabulated-list-entries (nreverse tabulated-list-entries)))
+
+(defun what-where/report-toggle-show-negative ()
+  "Toggle the value of `what-where/report-show-negative' and refresh the
+buffer."
+  (interactive)
+  (setf what-where/report-show-negative
+        (not what-where/report-show-negative))
+  (let ((current-row (1- (line-number-at-pos))))
+    (what-where/report-refresh)
+    (tabulated-list-print nil)
+    (goto-char (point-min))
+    (forward-line current-row)))
 
 (defun what-where/report-execute-action (action item)
   "Execute the ACTION (which comes from ITEM)."
@@ -123,6 +167,7 @@ assumed to exist."
   "Execute the action denoted by the last pressed key on the current item."
   (interactive)
   (with-what-where/report-current-item item
+      (message "No current item")
       (message "No current item")
     (let* ((key last-command-event)
            (actions (what-where-item-actions item))
@@ -171,6 +216,7 @@ assumed to exist."
 `what-where/report-mode'."
   (interactive)
   (with-what-where/report-current-item item
+      (what-where/report-toggle-show-negative)
       (message "No current item")
     (let* ((actions (what-where-item-actions item))
            (descriptions (mapcar #'what-where-action-description actions)))
@@ -202,6 +248,7 @@ assumed to exist."
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
     (define-key map (kbd "<return>") 'what-where/report-popup)
+    (define-key map (kbd "<tab>") 'what-where/report-toggle-show-negative)
     (dotimes (i (1+ (- ?z ?a)))
       (let* ((key (+ ?a i))
              (sequence (string key)))
@@ -210,22 +257,15 @@ assumed to exist."
     map)
   "Local keymap for `what-where/report-mode'.")
 
-(defun what-where/report-sort-by-score (a b)
-  "Sort items A and B by the contents of their \"Score\" column."
-  (let ((a-value (string-to-number (aref (cl-second a) 2)))
-        (b-value (string-to-number (aref (cl-second b) 2))))
-    (< a-value b-value)))
-
 (define-derived-mode what-where/report-mode
   tabulated-list-mode "What/Where"
   "Major mode for the results of a `what-where' query."
   :group 'what-where
   :syntax-table nil
   :abbrev-table nil
-  (setq tabulated-list-format [("Type" 10 t)
+  (setq tabulated-list-format [("Type" 10 nil)
                                ("Contents" 50 nil)
-                               ("Score" 10 what-where/report-sort-by-score)])
-  (setq tabulated-list-sort-key (cons "Score" t))
+                               ("Score" 10 nil)])
   (tabulated-list-init-header)
   (hl-line-mode)
   (add-hook 'pre-command-hook #'what-where/report-delete-focus-overlay nil t)
@@ -238,6 +278,8 @@ assumed to exist."
   (let ((report-buffer (get-buffer-create "*What/Where*")))
     (with-current-buffer report-buffer
       (what-where/report-mode)
+      (setf what-where/report-show-negative
+            what-where/report-show-negative-by-default)
       (what-where/report-refresh)
       (tabulated-list-print nil)
       (if nofocus
