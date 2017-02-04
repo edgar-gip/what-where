@@ -3,7 +3,7 @@
 ;; Copyright (C) 2017  Edgar Gonzàlez i Pellicer
 ;;
 ;; Author: Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
-;; Keywords: what, where
+;; Keywords: what, where, ranker
 ;; Version: 0.1
 ;;
 ;; This program is free software; you can redistribute it and/or modify it under

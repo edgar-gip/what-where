@@ -3,7 +3,7 @@
 ;; Copyright (C) 2017  Edgar Gonzàlez i Pellicer
 ;;
 ;; Author: Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
-;; Keywords: what, where
+;; Keywords: what, where, utils
 ;; Version: 0.1
 ;;
 ;; This program is free software; you can redistribute it and/or modify it under
@@ -69,28 +69,6 @@
                  (error "Bad feature spec: %s" feature-spec)))))
     (let ((processed-features (mapcar #'expand-spec specs)))
       `(list ,@processed-features))))
-
-(defun what-where/copy-action (contents)
-  "Return a `what-where-action' to copy CONTENTS to the kill ring."
-  (make-what-where-action :shortcut ?c :description "(C)opy"
-                          :function `(lambda ()
-                                       (kill-new ,contents))
-                          :feedback (format "Copied '%s' to kill ring."
-                                            contents)
-                          :is-terminal-p t))
-
-(defun what-where/replace-action (contents focus-start focus-end)
-  "Return a `what-where-action' to replace the area between FOCUS-START and
-FOCUS-END with CONTENTS."
-  (make-what-where-action :shortcut ?r :description "(R)eplace"
-                          :function
-                          `(lambda ()
-                             (with-current-buffer what-where-source-buffer
-                               (save-excursion
-                                 (delete-region ,focus-start ,focus-end)
-                                 (goto-char ,focus-start)
-                                 (insert ,contents))))
-                          :is-terminal-p t))
 
 (provide 'what-where/utils)
 

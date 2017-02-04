@@ -36,7 +36,8 @@
 (require 'what-where/utils)
 
 (defconst what-where-default-providers
-  '(what-where/numbers-provider)
+  '(what-where/ffap-provider
+    what-where/numbers-provider)
   "Default set of providers for `what-where'.")
 
 (defgroup what-where ()
@@ -123,9 +124,12 @@ been selected for the current query."
   :lighter " WW"
   :keymap what-where-mode-map)
 
-(require 'what-where/numbers)
+(require 'what-where/actions)
 (require 'what-where/ranker)
 (require 'what-where/report)
+
+(require 'what-where/ffap)
+(require 'what-where/numbers)
 
 (provide 'what-where)
 

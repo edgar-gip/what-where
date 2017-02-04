@@ -3,7 +3,7 @@
 ;; Copyright (C) 2017  Edgar Gonzàlez i Pellicer
 ;;
 ;; Author: Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
-;; Keywords: what, where
+;; Keywords: what, where, report
 ;; Version: 0.1
 ;;
 ;; This program is free software; you can redistribute it and/or modify it under
@@ -156,11 +156,13 @@ buffer."
         (feedback (what-where-action-feedback action))
         (is-terminal-p (what-where-action-is-terminal-p action)))
     (cl-assert callback)
+    (when (eq is-terminal-p 'early)
+      (quit-window))
     (funcall callback)
     (when feedback
       (message feedback))
     (what-where-select-item item)
-    (when is-terminal-p
+    (when (eq is-terminal-p t)
       (quit-window))))
 
 (defun what-where/report-shortcut ()
