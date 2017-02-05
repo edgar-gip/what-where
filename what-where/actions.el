@@ -28,7 +28,7 @@
 
 ;;; Code:
 
-(defun what-where/copy-action (contents)
+(defun what-where-copy-action (contents)
   "Return a `what-where-action' to copy CONTENTS to the kill ring."
   (let ((fn `(lambda ()
                (kill-new ,contents))))
@@ -38,7 +38,7 @@
                                               contents)
                             :is-terminal-p t)))
 
-(defun what-where/replace-action (contents focus-start focus-end)
+(defun what-where-replace-action (contents focus-start focus-end)
   "Return a `what-where-action' to replace the area between FOCUS-START and
 FOCUS-END with CONTENTS."
   (let ((fn `(lambda ()
@@ -51,7 +51,7 @@ FOCUS-END with CONTENTS."
                             :function fn
                             :is-terminal-p t)))
 
-(defun what-where/find-action (focus-start)
+(defun what-where-find-action (focus-start)
   "Return a `what-where-action' to find the file starting at FOCUS-START (using
 `ffap')."
   (let ((fn `(lambda ()

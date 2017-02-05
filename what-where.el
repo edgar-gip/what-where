@@ -36,8 +36,8 @@
 (require 'what-where/utils)
 
 (defconst what-where-default-providers
-  '(what-where/ffap-provider
-    what-where/numbers-provider)
+  '(what-where-ffap-provider
+    what-where-numbers-provider)
   "Default set of providers for `what-where'.")
 
 (defgroup what-where ()
@@ -89,11 +89,11 @@ been selected for the current query."
 (defun what-where-generate-items ()
   "Generate and score the set of items for the current point."
   (when what-where-items
-    (what-where/ranker-update))
+    (what-where-ranker-update))
   (what-where-clear-items)
   (what-where-set-source-buffer (current-buffer))
   (run-hooks 'what-where-providers)
-  (what-where/ranker-score-items)
+  (what-where-ranker-score-items)
   (setf what-where-items
         (sort what-where-items
               #'(lambda (a b)
@@ -110,7 +110,7 @@ been selected for the current query."
   "Display what you look at and where you are."
   (interactive "P")
   (what-where-generate-items)
-  (what-where/report-render-items nofocus))
+  (what-where-report-render-items nofocus))
 
 (defvar what-where-mode-map
   (let ((map (make-sparse-keymap)))

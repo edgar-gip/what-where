@@ -22,7 +22,7 @@
 ;;; Commentary:
 ;;
 ;; This file is `require'd by what-where.el. To enable the provider, include
-;; `what-where/ffap-provider' in `what-where-providers' (it is already part of
+;; `what-where-ffap-provider' in `what-where-providers' (it is already part of
 ;; `what-where-default-providers').
 
 ;; This file is *NOT* part of GNU Emacs.
@@ -31,21 +31,21 @@
 
 (require 'cl-lib)
 
-(defun what-where/ffap-provider ()
+(defun what-where-ffap-provider ()
   "`ffap'-related provider for `what-where'."
   (let ((file (ffap-file-at-point)))
     (when file
       (let* ((focus-start (cl-first ffap-string-at-point-region))
              (focus-end (cl-second ffap-string-at-point-region))
-             (features (what-where/features
+             (features (what-where-features
                         provider:ffap
                         type:file
                         actions:can-copy
                         actions:can-find
                         (file:is-absolute
                          (*b* (file-name-absolute-p file)))))
-             (copy-action (what-where/copy-action file))
-             (find-action (what-where/find-action focus-start))
+             (copy-action (what-where-copy-action file))
+             (find-action (what-where-find-action focus-start))
              (item (make-what-where-item :focus-start focus-start
                                          :focus-end focus-end
                                          :type "File"

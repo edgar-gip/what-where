@@ -30,7 +30,7 @@
 
 (require 'cl-lib)
 
-(defmacro what-where/features (&rest specs)
+(defmacro what-where-features (&rest specs)
   "Expand a feature list specification for use inside a `what-where-item'."
   (cl-flet* ((expand-value (value)
                 (if (or (not (listp value))
