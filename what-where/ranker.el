@@ -29,6 +29,12 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'pp)
+
+(defcustom what-where/ranker-learn t
+  "Whether the `what-where/ranker' model should be learnt."
+  :type 'boolean
+  :group 'what-where)
 
 (defcustom what-where/ranker-margin 1.0
   "Minimum margin for the `what-where/ranker' model."
@@ -46,19 +52,130 @@ was made for a particular focus."
   :type 'boolean
   :group 'what-where)
 
+(defcustom what-where/ranker-model-file
+  (expand-file-name (concat (if (boundp 'user-emacs-directory)
+                                user-emacs-directory
+                              "~/.emacs.d/")
+                            "/what-where-ranker.dat"))
+  "File to store the `what-where/ranker' model."
+  :type 'string
+  :group 'what-where)
+
+(defcustom what-where/ranker-epochs-to-save-model 10
+  "Number of training epochs between saves of the `what-where/ranker' model."
+  :type '(choice (const :tag "None" nil)
+                 (integer :tag "Epochs"))
+  :group 'what-where)
+
 (cl-defstruct what-where/ranker-model
   epochs
   current-weights
   average-weights)
 
+(defvar what-where/ranker-model nil
+  "Model used by the `what-where/ranker'.")
+
+(defvar what-where/ranker-last-model-save-epochs nil
+  "Number of training epochs of `what-where/ranker-model' last time it was
+saved.")
+
+(defun what-where/ranker-save-model ()
+  "Save `what-where/ranker-model' to `what-where/ranker-model-file'."
+  (with-demoted-errors
+      (concat "Error serializing `what-where/ranker-model' to "
+              what-where/ranker-model-file ": %s")
+    (let ((epochs (what-where/ranker-model-epochs what-where/ranker-model))
+          (current-weights nil)
+          (average-weights nil))
+      (maphash #'(lambda (feature weight)
+                   (push (cons feature weight) current-weights))
+               (what-where/ranker-model-current-weights
+                what-where/ranker-model))
+      (maphash #'(lambda (feature weight)
+                   (push (cons feature weight) average-weights))
+               (what-where/ranker-model-average-weights
+                what-where/ranker-model))
+      (let ((serialization (list epochs current-weights average-weights)))
+        (with-temp-buffer
+          (pp serialization (current-buffer))
+          (write-region (point-min) (point-max) what-where/ranker-model-file)))
+      (setf what-where/ranker-last-model-save-epochs epochs))
+    (message "Saved `what-where/ranker-model' to %s"
+             what-where/ranker-model-file)))
+
+(defun what-where/ranker-shutdown-model ()
+  "Shut down the `what-where/ranker-model'."
+  (when (and what-where/ranker-model
+             (> (what-where/ranker-model-epochs what-where/ranker-model)
+                what-where/ranker-last-model-save-epochs))
+    (what-where/ranker-update)
+    (what-where/ranker-save-model)))
+
+(defun what-where/ranker-load-model ()
+  "Load `what-where/ranker-model' from `what-where/ranker-model-file'."
+  (when (file-exists-p what-where/ranker-model-file)
+    (with-demoted-errors
+        (concat "Error deserializing `what-where/ranker-model' from "
+                what-where/ranker-model-file ": %s")
+      (with-temp-buffer
+        (insert-file-contents what-where/ranker-model-file)
+        (goto-char (point-min))
+        (let ((serialization (read (current-buffer))))
+          (cl-assert (listp serialization) nil
+                     "File contents must be a list")
+          (cl-assert (= (length serialization) 3) nil
+                     "File contents must be a three-element list")
+          (cl-assert (integerp (cl-first serialization)) nil
+                     "First element of file contents must be an integer")
+          (cl-assert (listp (cl-second serialization)) nil
+                     "Second element of file contents must be a list")
+          (cl-assert (cl-every #'(lambda (x)
+                                   (and (consp x) (symbolp (car x))
+                                        (floatp (cdr x))))
+                               (cl-second serialization) nil)
+                     (concat "Each element in second element of file contents "
+                             "must be a (symbol . float) cons cell"))
+          (cl-assert (listp (cl-third serialization)) nil
+                     "Third element of file contents must be a list")
+          (cl-assert (cl-every #'(lambda (x)
+                                   (and (consp x) (symbolp (car x))
+                                        (floatp (cdr x))))
+                               (cl-third serialization) nil)
+                     (concat "Each element in third element of file contents "
+                             "must be a (symbol . float) cons cell"))
+          (let ((epochs (cl-first serialization))
+                (current-weights (make-hash-table :test 'eq))
+                (average-weights (make-hash-table :test 'eq)))
+            (dolist (pair (cl-second serialization))
+              (puthash (car pair) (cdr pair) current-weights))
+            (dolist (pair (cl-third serialization))
+              (puthash (car pair) (cdr pair) average-weights))
+            (setf what-where/ranker-model
+                  (make-what-where/ranker-model
+                   :epochs epochs
+                   :current-weights current-weights
+                   :average-weights average-weights))
+            (setf what-where/ranker-last-model-save-epochs epochs)
+            (message "Loaded `what-where/ranker-model' from %s"
+                     what-where/ranker-model-file)
+            t))))))
+
 (defun what-where/ranker-create-model ()
   "Create an empty `what-where/ranker-model'."
-  (make-what-where/ranker-model :epochs 0
-                                :current-weights (make-hash-table :test 'eq)
-                                :average-weights (make-hash-table :test 'eq)))
+  (setf what-where/ranker-model
+        (make-what-where/ranker-model
+         :epochs 0
+         :current-weights (make-hash-table :test 'eq)
+         :average-weights (make-hash-table :test 'eq)))
+  (setf what-where/ranker-last-model-save-epochs 0)
+  (message "Created new `what-where/ranker-model'"))
 
-(defvar what-where/ranker-model (what-where/ranker-create-model)
-  "Model used by the `what-where/ranker'.")
+(defun what-where/ranker-ensure-model ()
+  "Ensures `what-where/ranker-model' exists."
+  (unless what-where/ranker-model
+    (or (what-where/ranker-load-model)
+        (what-where/ranker-create-model))
+    (add-hook 'kill-emacs-hook 'what-where/ranker-shutdown-model)))
 
 (defun what-where/ranker-score-item (item &optional use-current-p)
   "Score ITEM with `what-where/ranker-model'. If USE-CURRENT-P, use the
@@ -82,6 +199,7 @@ current weights instead of the average ones."
 (defun what-where/ranker-score-items ()
   "Score the `what-where-items' with `what-where/ranker-model', using the
 average weights."
+  (what-where/ranker-ensure-model)
   (dolist (item what-where-items)
     (setf (what-where-item-score item) (what-where/ranker-score-item item))))
 
@@ -111,8 +229,10 @@ POSITIVE-FEATURES and NEGATIVE-FEATURES."
 (defun what-where/ranker-update ()
   "Update the MODEL given that, out of `what-where-items',
 `what-where-selected-item' was chosen."
-  (when (or what-where/ranker-update-when-none-selected
-            what-where-selected-item)
+  (what-where/ranker-ensure-model)
+  (when (and what-where/ranker-learn
+             (or what-where/ranker-update-when-none-selected
+                 what-where-selected-item))
     ;; Find the score of the selected item (if any), and of the highest scored
     ;; non-selected item (if any).
     (let ((selected-item-score
@@ -159,7 +279,13 @@ POSITIVE-FEATURES and NEGATIVE-FEATURES."
                            (remhash feature average-weights)
                          (puthash feature new-weight average-weights))))
                  current-weights))
-      (incf (what-where/ranker-model-epochs what-where/ranker-model)))))
+      (incf (what-where/ranker-model-epochs what-where/ranker-model))
+      ;; Check if serialization is needed.
+      (when (and what-where/ranker-epochs-to-save-model
+                 (>= (- (what-where/ranker-model-epochs what-where/ranker-model)
+                        what-where/ranker-last-model-save-epochs)
+                     what-where/ranker-epochs-to-save-model))
+        (what-where/ranker-save-model)))))
 
 (provide 'what-where/ranker)
 
