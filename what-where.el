@@ -106,6 +106,7 @@ been selected for the current query."
   "Set `what-where-source-buffer' to BUFFER."
   (setf what-where-source-buffer buffer))
 
+;;;###autoload
 (defun what-where (nofocus)
   "Display what you look at and where you are."
   (interactive "P")
@@ -118,6 +119,7 @@ been selected for the current query."
     map)
   "Keymap for `what-where-mode'.")
 
+;;;###autoload
 (define-minor-mode what-where-mode
   "Minor mode to find what you look at and where you are."
   :init-value nil
