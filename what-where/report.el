@@ -186,6 +186,7 @@ buffer."
 (defvar what-where-report-popup-menu-keymap
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map popup-menu-keymap)
+    (define-key map (kbd "RET") 'popup-select)
     (define-key map (kbd "<return>") 'popup-select)
     (define-key map (kbd "C-g") 'what-where-report-popup-abort)
     (define-key map (kbd "q") 'what-where-report-popup-abort)
@@ -249,7 +250,9 @@ buffer."
 (defvar what-where-report-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map (kbd "RET") 'what-where-report-popup)
     (define-key map (kbd "<return>") 'what-where-report-popup)
+    (define-key map (kbd "TAB") 'what-where-report-toggle-show-negative)
     (define-key map (kbd "<tab>") 'what-where-report-toggle-show-negative)
     (dotimes (i (1+ (- ?z ?a)))
       (let* ((key (+ ?a i))
