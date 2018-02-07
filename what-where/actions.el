@@ -64,7 +64,7 @@ FOCUS-END with CONTENTS."
                      (switch-to-buffer what-where-source-buffer)
                      (save-excursion
                        (goto-char ,focus-start)
-                       (call-interactively 'find-file-at-point))))))))
+                       (call-interactively 'ffap-other-window))))))))
     (make-what-where-action :shortcut ?f :description "(F)ind"
                             :function fn
                             :is-terminal-p 'early)))
