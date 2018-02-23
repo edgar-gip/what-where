@@ -28,6 +28,8 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 (defcustom what-where-report-show-negative-by-default nil
   "Whether to show items with negative-scores by default in
 `what-where-report'."
@@ -49,7 +51,7 @@
   "Execute BODY with ITEM-SYMBOL bound to the currently selected item. If
 unset, execute ELLIPSIS-CLAUSE or NIL-CLAUSE."
   (declare (indent 3))
-  (let ((id-symbol (gensym)))
+  (let ((id-symbol (cl-gensym)))
     `(let ((,id-symbol (tabulated-list-get-id)))
        (cl-case ,id-symbol
         ((nil)
@@ -64,7 +66,7 @@ unset, execute ELLIPSIS-CLAUSE or NIL-CLAUSE."
   "Execute BODY with ITEM-SYMBOL bound to the currently selected item, which is
 assumed to exist."
   (declare (indent 1))
-  (let ((id-symbol (gensym)))
+  (let ((id-symbol (cl-gensym)))
     `(let ((,id-symbol (tabulated-list-get-id)))
        (cl-assert (and ,id-symbol (not (eq ,id-symbol 'ellipsis))))
        (let ((,item-symbol (nth ,id-symbol what-where-items)))
@@ -127,7 +129,7 @@ assumed to exist."
                                        (number-to-string
                                         (what-where-item-score item)))))
               tabulated-list-entries)
-        (incf i)
+        (cl-incf i)
         (setf remaining-items (cl-rest remaining-items))))
     (when remaining-items
       (push (list 'ellipsis

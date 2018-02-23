@@ -191,7 +191,7 @@ current weights instead of the average ones."
       (dolist (pair (what-where-item-features item))
         (let ((feature (car pair))
               (value (cdr pair)))
-          (incf sum (* value (gethash feature weights 0.0)))))
+          (cl-incf sum (* value (gethash feature weights 0.0)))))
       (unless use-current-p
         (setf sum (/ sum epochs))))
     sum))
