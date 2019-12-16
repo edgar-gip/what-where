@@ -30,6 +30,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'ffap)
 
 (defun what-where-ffap-provider ()
   "`ffap'-related provider for `what-where'."

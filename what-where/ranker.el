@@ -279,7 +279,7 @@ POSITIVE-FEATURES and NEGATIVE-FEATURES."
                            (remhash feature average-weights)
                          (puthash feature new-weight average-weights))))
                  current-weights))
-      (incf (what-where-ranker-model-epochs what-where-ranker-model))
+      (cl-incf (what-where-ranker-model-epochs what-where-ranker-model))
       ;; Check if serialization is needed.
       (when (and what-where-ranker-epochs-to-save-model
                  (>= (- (what-where-ranker-model-epochs what-where-ranker-model)
