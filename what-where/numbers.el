@@ -31,6 +31,58 @@
 
 (require 'cl-lib)
 
+(defun what-where-looking-at-number ()
+  "Returns a list (MATCHED-NUMBER FOCUS-START FOCUS-END) if the
+current point is over a number, or NIL otherwise."
+  (save-match-data
+    (when (looking-at "[[:xdigit:]]+")
+      (let ((matched-string (match-string-no-properties 0))
+            (focus-start (point))
+            (focus-end (match-end 0)))
+        (when (looking-back "[[:xdigit:]]+" nil t)
+          (setf focus-start (match-beginning 0))
+          (setf matched-string (concat (match-string-no-properties 0)
+                                       matched-string)))
+        (list matched-string focus-start focus-end)))))
+
+(defun what-where-numbers-provider ()
+  "Number-related provider for `what-where'."
+  (save-match-data
+    (let ((match (what-where-looking-at-number)))
+      (when match
+        (let ((matched-string (cl-first match))
+              (focus-start (cl-second match))
+              (focus-end (cl-third match)))
+          (what-where-numbers-generate-items matched-string
+                                             focus-start focus-end))))))
+
+(defun what-where-numbers-generate-items (matched-string focus-start focus-end)
+  "Generate possible `what-where-items' for MATCHED-STRING, which starts at
+FOCUS-START and ends at FOCUS-END."
+  (when (string-match-p "^[01]+$" matched-string)
+    (let ((matched-number (string-to-number matched-string 2)))
+      (what-where-numbers-generate-base-items 2 matched-number
+                                              focus-start focus-end)))
+  (when (string-match-p "^[0-7]+$" matched-string)
+    (let ((matched-number (string-to-number matched-string 8)))
+      (what-where-numbers-generate-base-items 8 matched-number
+                                              focus-start focus-end)))
+  (when (string-match-p "^[[:digit:]]+$" matched-string)
+    (let ((matched-number (string-to-number matched-string 10)))
+      (what-where-numbers-generate-timestamp-items matched-number
+                                                   focus-start focus-end)
+      (what-where-numbers-generate-timestamp-items (/ matched-number 1000)
+                                                   focus-start focus-end)
+      (what-where-numbers-generate-timestamp-items (/ matched-number 1000000)
+                                                   focus-start focus-end)
+      (what-where-numbers-generate-roman-items matched-number
+                                               focus-start focus-end)
+      (what-where-numbers-generate-base-items 10 matched-number
+                                              focus-start focus-end)))
+  (let ((matched-number (string-to-number matched-string 16)))
+    (what-where-numbers-generate-base-items 16 matched-number
+                                            focus-start focus-end)))
+
 (defcustom what-where-numbers-timezone "UTC0"
   "Timezone for the `what-where-numbers' provider."
   :type 'string
@@ -50,63 +102,6 @@
   "Maximum year for the `what-where-numbers' provider."
   :type 'integer
   :group 'what-where)
-
-(defcustom what-where-numbers-roman-lowercase nil
-  "Whether to lowercase roman numbers in the `what-where-numbers' provider."
-  :type 'boolean
-  :group 'what-where)
-
-(defcustom what-where-numbers-hexadecimal-prefix
-  '((c-mode . "0x") (c++-mode . "0x") (emacs-lisp-mode . "#x"))
-  "Prefix to use when displaying hexadecimal numbers in each major mode."
-  :type '(alist :key-type symbol :value-type string)
-  :group 'what-where)
-
-(defcustom what-where-numbers-octal-prefix
-  '((c-mode . "0") (c++-mode . "0") (emacs-lisp-mode . "#o"))
-  "Prefix to use when displaying octal numbers in each major mode."
-  :type '(alist :key-type symbol :value-type string)
-  :group 'what-where)
-
-(defun what-where-looking-at-number ()
-  "Returns a list (MATCHED-NUMBER FOCUS-START FOCUS-END) if the
-current point is over a number, or NIL otherwise."
-  (save-match-data
-    (when (looking-at "[[:digit:]]+")
-      (let ((matched-string (match-string-no-properties 0))
-            (focus-start (point))
-            (focus-end (match-end 0)))
-        (when (looking-back "[[:digit:]]+" nil t)
-          (setf focus-start (match-beginning 0))
-          (setf matched-string (concat (match-string-no-properties 0)
-                                       matched-string)))
-        (let ((matched-number (string-to-number matched-string)))
-          (list matched-number focus-start focus-end))))))
-
-(defun what-where-numbers-provider ()
-  "Number-related provider for `what-where'."
-  (save-match-data
-    (let ((match (what-where-looking-at-number)))
-      (when match
-        (let ((matched-number (cl-first match))
-              (focus-start (cl-second match))
-              (focus-end (cl-third match)))
-          (what-where-numbers-generate-items matched-number
-                                             focus-start focus-end))))))
-
-(defun what-where-numbers-generate-items (matched-number focus-start focus-end)
-  "Generate possible `what-where-items' for MATCHED-NUMBER, which starts at
-FOCUS-START and ends at FOCUS-END."
-  (what-where-numbers-generate-timestamp-items matched-number
-                                               focus-start focus-end)
-  (what-where-numbers-generate-timestamp-items (/ matched-number 1000)
-                                               focus-start focus-end)
-  (what-where-numbers-generate-timestamp-items (/ matched-number 1000000)
-                                               focus-start focus-end)
-  (what-where-numbers-generate-roman-items matched-number
-                                           focus-start focus-end)
-  (what-where-numbers-generate-base10-items matched-number
-                                            focus-start focus-end))
 
 (defun what-where-numbers-generate-timestamp-items (matched-number
                                                     focus-start focus-end)
@@ -151,6 +146,11 @@ which starts at FOCUS-START and ends at FOCUS-END."
     (10 . "X") (9 . "IX") (5 . "V") (4 . "IV") (1 . "I"))
   "Alist with (VALUE . DIGITS) roman number values.")
 
+(defcustom what-where-numbers-roman-lowercase nil
+  "Whether to lowercase roman numbers in the `what-where-numbers' provider."
+  :type 'boolean
+  :group 'what-where)
+
 (defun what-where-numbers-generate-roman-items (matched-number
                                                 focus-start focus-end)
   "Generate possible roman-number-related `what-where-items' for MATCHED-NUMBER,
@@ -189,63 +189,118 @@ which starts at FOCUS-START and ends at FOCUS-END."
                                                         replace-action))))
         (what-where-add-item item)))))
 
-(defun what-where-numbers-generate-base10-items (matched-number
-                                                 focus-start focus-end)
+(defconst what-where-numbers-base-names
+  '((2 . "Bin") (8 . "Oct") (10 . "Dec") (16 . "Hex"))
+  "Alist with (VALUE . NAME) for base names.")
+
+(defconst what-where-numbers-base-formatters
+  '((2 . what-where-numbers-format-binary)
+    (8 . what-where-numbers-format-octal)
+    (10 . what-where-numbers-format-decimal)
+    (16 . what-where-numbers-format-hexadecimal))
+  "Alist with (VALUE . FUNCTION) for number formatters by base.")
+
+(defconst what-where-numbers-base-prefix-variable
+  '((2 . what-where-numbers-binary-prefix)
+    (8 . what-where-numbers-octal-prefix)
+    (16 . what-where-numbers-hexadecimal-prefix))
+  "Alist with (VALUE . VARIABLE) for customization variables of base prefixes.")
+
+(defcustom what-where-numbers-binary-prefix
+  '((c++-mode . "0b") (emacs-lisp-mode . "#b"))
+  "Prefix to use when displaying hexadecimal numbers in each major mode."
+  :type '(alist :key-type symbol :value-type string)
+  :group 'what-where)
+
+(defcustom what-where-numbers-octal-prefix
+  '((c-mode . "0") (c++-mode . "0") (emacs-lisp-mode . "#o"))
+  "Prefix to use when displaying octal numbers in each major mode."
+  :type '(alist :key-type symbol :value-type string)
+  :group 'what-where)
+
+(defcustom what-where-numbers-hexadecimal-prefix
+  '((c-mode . "0x") (c++-mode . "0x") (emacs-lisp-mode . "#x"))
+  "Prefix to use when displaying hexadecimal numbers in each major mode."
+  :type '(alist :key-type symbol :value-type string)
+  :group 'what-where)
+
+(defun what-where-numbers-format-binary (number)
+  "Format NUMBER as a binary number."
+  (do ((remaining number (lsh remaining -1))
+       (digits nil (cons (if (zerop (logand remaining 1)) ?0 ?1) digits))
+       (n-digits 0 (logand (1+ n-digits) 7)))
+      ((and (zerop remaining) (zerop n-digits))
+       (if (null digits) "0" (concat digits)))))
+
+(defun what-where-numbers-format-octal (number)
+  "Format NUMBER as an octal number."
+  (format "%o" number))
+
+(defun what-where-numbers-format-decimal (number)
+  "Format NUMBER as a decimal number."
+  (format "%d" number))
+
+(defun what-where-numbers-format-hexadecimal (number)
+  "Format NUMBER as a hexadecimal number."
+  (format "%x" number))
+
+(defun what-where-numbers-generate-base-items (src-base matched-number
+                                               focus-start focus-end)
   "Generate possible base-conversion-related `what-where-items'
 for MATCHED-NUMBER, which starts at FOCUS-START and ends at
-FOCUS-END, and which is assumed to be in base 10."
-  (let ((hexadecimal-parent-mode
-         (apply #'derived-mode-p
-                (mapcar #'car what-where-numbers-hexadecimal-prefix)))
-        (octal-parent-mode
-         (apply #'derived-mode-p
-                (mapcar #'car what-where-numbers-octal-prefix))))
-    (when hexadecimal-parent-mode
-      (let* ((contents
-              (format "%s%x"
-                      (cdr (assq hexadecimal-parent-mode
-                                 what-where-numbers-hexadecimal-prefix))
-                      matched-number))
-             (features (what-where-features
-                        provider:numers
-                        type:dec-to-hex
-                        actions:can-copy
-                        actions:can-replace
-                        ("numbers:hex:len:%d" (length contents) 1)))
-             (copy-action (what-where-copy-action contents))
-             (replace-action (what-where-replace-action contents
-                                                        focus-start focus-end))
-             (item (make-what-where-item :focus-start focus-start
-                                         :focus-end focus-end
-                                         :type "Dec->Hex"
-                                         :contents contents
-                                         :features features
-                                         :actions (list copy-action
-                                                        replace-action))))
-        (what-where-add-item item)))
-    (when octal-parent-mode
-      (let* ((contents
-              (format "%s%x"
-                      (cdr (assq octal-parent-mode
-                                 what-where-numbers-octal-prefix))
-                      matched-number))
-             (features (what-where-features
-                        provider:numers
-                        type:dec-to-oct
-                        actions:can-copy
-                        actions:can-replace
-                        ("numbers:oct:len:%d" (length contents) 1)))
-             (copy-action (what-where-copy-action contents))
-             (replace-action (what-where-replace-action contents
-                                                        focus-start focus-end))
-             (item (make-what-where-item :focus-start focus-start
-                                         :focus-end focus-end
-                                         :type "Dec->Oct"
-                                         :contents contents
-                                         :features features
-                                         :actions (list copy-action
-                                                        replace-action))))
-        (what-where-add-item item)))))
+FOCUS-END, and which was expressed in SRC-BASE."
+  (let ((src-base-name (cdr (assq src-base what-where-numbers-base-names))))
+    (dolist (tgt-base '(2 8 10 16))
+      (unless (= src-base tgt-base)
+        (let* ((tgt-base-name
+                (cdr (assq tgt-base what-where-numbers-base-names)))
+               (type-label (format "%s->%s" src-base-name tgt-base-name))
+               (prefix-variable
+                (cdr (assq tgt-base what-where-numbers-base-prefix-variable)))
+               (prefix-parent-mode
+                (apply #'derived-mode-p
+                       (mapcar #'car (symbol-value prefix-variable))))
+               (formatter
+                (cdr (assq tgt-base what-where-numbers-base-formatters)))
+               (contents (funcall formatter matched-number))
+               (features (what-where-features
+                          provider:numers
+                          type:base
+                          ("src-base:%d" src-base 1)
+                          ("tgt-base:%d" tgt-base 1)
+                          actions:can-copy
+                          actions:can-replace))
+               (copy-action (what-where-copy-action contents))
+               (replace-action (what-where-replace-action contents
+                                                          focus-start
+                                                          focus-end))
+               (item (make-what-where-item :focus-start focus-start
+                                           :focus-end focus-end
+                                           :type type-label
+                                           :contents contents
+                                           :features features
+                                           :actions (list copy-action
+                                                          replace-action))))
+          (what-where-add-item item)
+          (when prefix-parent-mode
+            (let* ((prefix (cdr (assq prefix-parent-mode
+                                      (symbol-value prefix-variable))))
+                   (contents* (concat prefix contents))
+                   (features* (cons '("has-prefix" . 1) features))
+                   (type-label* (concat type-label "*"))
+                   (copy-action* (what-where-copy-action contents*))
+                   (replace-action* (what-where-replace-action contents*
+                                                               focus-start
+                                                               focus-end))
+                   (item*
+                    (make-what-where-item :focus-start focus-start
+                                          :focus-end focus-end
+                                          :type type-label*
+                                          :contents contents*
+                                          :features features*
+                                          :actions (list copy-action*
+                                                         replace-action*))))
+              (what-where-add-item item*))))))))
 
 (provide 'what-where/numbers)
 

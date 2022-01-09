@@ -60,9 +60,9 @@
                 ((symbolp spec)
                  `(cons ',spec 1))
                 ((listp spec)
-                 (let ((name (car spec))
-                       (value (car (last (cdr spec))))
-                       (arguments (butlast (cdr spec))))
+                 (let ((name (cl-first spec))
+                       (value (cl-first (last (cl-rest spec))))
+                       (arguments (butlast (cl-rest spec))))
                    (expand-feature name arguments
                                    (expand-value value))))
                 (t
