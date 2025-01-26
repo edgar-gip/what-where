@@ -31,6 +31,8 @@
 (require 'cl-lib)
 (require 'pp)
 
+(require 'what-where/customize)
+
 (defcustom what-where-ranker-learn t
   "Whether the `what-where-ranker' model should be learnt."
   :type 'boolean

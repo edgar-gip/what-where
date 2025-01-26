@@ -28,6 +28,15 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
+(cl-defstruct what-where-action
+  shortcut
+  description
+  function
+  feedback
+  is-terminal-p)
+
 (defun what-where-copy-action (contents)
   "Return a `what-where-action' to copy CONTENTS to the kill ring."
   (let ((fn `(lambda ()

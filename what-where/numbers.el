@@ -31,6 +31,10 @@
 
 (require 'cl-lib)
 
+(require 'what-where/actions)
+(require 'what-where/items)
+(require 'what-where/utils)
+
 (defun what-where-looking-at-number ()
   "Returns a list (MATCHED-NUMBER FOCUS-START FOCUS-END) if the
 current point is over a number, or NIL otherwise."
@@ -166,7 +170,7 @@ which starts at FOCUS-START and ends at FOCUS-END."
           (if (> current-value remaining)
               (setf possible-values (cdr possible-values))
             (push current-digit digits)
-            (decf remaining current-value))))
+            (cl-decf remaining current-value))))
       (let* ((all-digits (apply #'concat (nreverse digits)))
              (contents (if what-where-numbers-roman-lowercase
                            (downcase all-digits) all-digits))
@@ -226,9 +230,9 @@ which starts at FOCUS-START and ends at FOCUS-END."
 
 (defun what-where-numbers-format-binary (number)
   "Format NUMBER as a binary number."
-  (do ((remaining number (lsh remaining -1))
-       (digits nil (cons (if (zerop (logand remaining 1)) ?0 ?1) digits))
-       (n-digits 0 (logand (1+ n-digits) 7)))
+  (cl-do ((remaining number (ash remaining -1))
+          (digits nil (cons (if (zerop (logand remaining 1)) ?0 ?1) digits))
+          (n-digits 0 (logand (1+ n-digits) 7)))
       ((and (zerop remaining) (zerop n-digits))
        (if (null digits) "0" (concat digits)))))
 

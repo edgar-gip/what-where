@@ -30,7 +30,13 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'ffap)
+
+(require 'what-where/actions)
+(require 'what-where/items)
+(require 'what-where/utils)
+
+(declare-function ffap-file-at-point "ffap.el")
+(defvar ffap-string-at-point-region)
 
 (defun what-where-ffap-provider ()
   "`ffap'-related provider for `what-where'."

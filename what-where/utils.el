@@ -33,16 +33,16 @@
 (defmacro what-where-features (&rest specs)
   "Expand a feature list specification for use inside a `what-where-item'."
   (cl-flet* ((expand-value (value)
-                (if (or (not (listp value))
-                        (not (= (length value) 2)))
-                    value
-                  (let ((functor (cl-first value))
-                        (argument (cl-second value)))
-                    (cl-case functor
-                      (*b*
-                       `(if ,argument 1 0))
-                      (otherwise
-                       value)))))
+               (if (or (not (listp value))
+                       (not (= (length value) 2)))
+                   value
+                 (let ((functor (cl-first value))
+                       (argument (cl-second value)))
+                   (cl-case functor
+                     (*b*
+                      `(if ,argument 1 0))
+                     (otherwise
+                      value)))))
              (expand-feature (name arguments expanded-value)
                (cond
                 ((symbolp name)
@@ -66,7 +66,7 @@
                    (expand-feature name arguments
                                    (expand-value value))))
                 (t
-                 (error "Bad feature spec: %s" feature-spec)))))
+                 (error "Bad feature spec: %s" spec)))))
     (let ((processed-features (mapcar #'expand-spec specs)))
       `(list ,@processed-features))))
 

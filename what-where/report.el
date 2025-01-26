@@ -29,6 +29,11 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'hl-line)
+
+(require 'what-where/actions)
+(require 'what-where/customize)
+(require 'what-where/items)
 
 (defcustom what-where-report-show-negative-by-default nil
   "Whether to show items with negative-scores by default in

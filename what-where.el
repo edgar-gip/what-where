@@ -33,58 +33,16 @@
 
 (require 'cl-lib)
 (require 'popup)
+
+(require 'what-where/actions)
+(require 'what-where/customize)
+(require 'what-where/items)
+(require 'what-where/ranker)
+(require 'what-where/report)
 (require 'what-where/utils)
 
-(defconst what-where-default-providers
-  '(what-where-ffap-provider
-    what-where-numbers-provider)
-  "Default set of providers for `what-where'.")
-
-(defgroup what-where ()
-  "Customization options for `what-where-mode'.")
-
-(defcustom what-where-providers what-where-default-providers
-  "Set of providers for `what-where'."
-  :type 'hook
-  :options what-where-default-providers
-  :group 'what-where)
-
-(cl-defstruct what-where-action
-  shortcut
-  description
-  function
-  feedback
-  is-terminal-p)
-
-(cl-defstruct what-where-item
-  focus-start
-  focus-end
-  type
-  contents
-  features
-  actions
-  (score nil))
-
-(defvar what-where-items ()
-  "Current set of items found by `what-where'.")
-
-(defvar what-where-selected-item ()
-  "First item selected by the user among those in `what-where-items'.")
-
-(defun what-where-clear-items ()
-  "Clear the set of items in `what-where-items'."
-  (setf what-where-items ())
-  (setf what-where-selected-item nil))
-
-(defun what-where-add-item (item)
-  "Add ITEM to `what-where-items'."
-  (push item what-where-items))
-
-(defun what-where-select-item (item)
-  "Set the ITEM as `what-where-selected-item', unless another one has already
-been selected for the current query."
-  (unless what-where-selected-item
-    (setf what-where-selected-item item)))
+(require 'what-where/ffap)
+(require 'what-where/numbers)
 
 (defun what-where-generate-items ()
   "Generate and score the set of items for the current point."
@@ -98,13 +56,6 @@ been selected for the current query."
         (sort what-where-items
               #'(lambda (a b)
                   (> (what-where-item-score a) (what-where-item-score b))))))
-
-(defvar what-where-source-buffer nil
-  "Source buffer that `what-where' was called from.")
-
-(defun what-where-set-source-buffer (buffer)
-  "Set `what-where-source-buffer' to BUFFER."
-  (setf what-where-source-buffer buffer))
 
 ;;;###autoload
 (defun what-where (nofocus)
@@ -125,13 +76,6 @@ been selected for the current query."
   :init-value nil
   :lighter " WW"
   :keymap what-where-mode-map)
-
-(require 'what-where/actions)
-(require 'what-where/ranker)
-(require 'what-where/report)
-
-(require 'what-where/ffap)
-(require 'what-where/numbers)
 
 (provide 'what-where)
 
