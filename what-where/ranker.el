@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/ranker.el --- Ranking model for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -69,7 +71,9 @@ was made for a particular focus."
                  (integer :tag "Epochs"))
   :group 'what-where)
 
-(cl-defstruct what-where-ranker-model
+(cl-defstruct (what-where-ranker-model
+               (:constructor what-where-make-ranker-model)
+               (:copier nil))
   epochs
   current-weights
   average-weights)
@@ -151,7 +155,7 @@ saved.")
             (dolist (pair (cl-third serialization))
               (puthash (car pair) (cdr pair) average-weights))
             (setf what-where-ranker-model
-                  (make-what-where-ranker-model
+                  (what-where-make-ranker-model
                    :epochs epochs
                    :current-weights current-weights
                    :average-weights average-weights))
@@ -163,7 +167,7 @@ saved.")
 (defun what-where-ranker-create-model ()
   "Create an empty `what-where-ranker-model'."
   (setf what-where-ranker-model
-        (make-what-where-ranker-model
+        (what-where-make-ranker-model
          :epochs 0
          :current-weights (make-hash-table :test 'eq)
          :average-weights (make-hash-table :test 'eq)))

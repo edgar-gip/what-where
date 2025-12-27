@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/utils.el --- Utilities for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer

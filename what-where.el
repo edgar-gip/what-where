@@ -62,11 +62,14 @@
   "Display what you look at and where you are."
   (interactive "P")
   (what-where-generate-items)
-  (what-where-report-render-items nofocus))
+  (if what-where-items
+      (what-where-report-render-items nofocus)
+    (when what-where-beep-on-no-items (beep))
+    (message "No items found.")))
 
 (defvar what-where-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c !") 'what-where)
+    (define-key map what-where-hotkey 'what-where)
     map)
   "Keymap for `what-where-mode'.")
 

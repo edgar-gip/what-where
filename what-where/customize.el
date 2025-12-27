@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/customize.el --- Customization options for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -36,6 +38,16 @@
 (defgroup what-where ()
   "Customization options for `what-where-mode'."
   :group 'convenience)
+
+(defcustom what-where-beep-on-no-items nil
+  "Whether to `beep' when `what-where' finds no items."
+  :type 'boolean
+  :group 'what-where)
+
+(defcustom what-where-hotkey (kbd "C-c !")
+  "Hotkey to invoke `what-where'."
+  :type 'key-sequence
+  :group 'what-where)
 
 (defcustom what-where-providers what-where-default-providers
   "Set of providers for `what-where'."

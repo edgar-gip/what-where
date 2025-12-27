@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/report.el --- Report window for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -194,7 +196,7 @@ buffer."
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map popup-menu-keymap)
     (define-key map (kbd "RET") 'popup-select)
-    (define-key map (kbd "<return>") 'popup-select)
+    (define-key map (kbd "DEL") 'what-where-report-popup-abort)
     (define-key map (kbd "C-g") 'what-where-report-popup-abort)
     (define-key map (kbd "q") 'what-where-report-popup-abort)
     map)
@@ -205,7 +207,7 @@ buffer."
   (interactive)
   (popup-delete what-where-report-popup-menu))
 
-(defun what-where-report-popup-shortcut (keyseq binding)
+(defun what-where-report-popup-shortcut (keyseq _binding)
   "Process KEYSEQ as a potential shortcut from the popup menu in
 `what-where-report-mode'."
   (when (= (length keyseq) 1)
@@ -258,9 +260,8 @@ buffer."
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map tabulated-list-mode-map)
     (define-key map (kbd "RET") 'what-where-report-popup)
-    (define-key map (kbd "<return>") 'what-where-report-popup)
     (define-key map (kbd "TAB") 'what-where-report-toggle-show-negative)
-    (define-key map (kbd "<tab>") 'what-where-report-toggle-show-negative)
+    (define-key map (kbd "DEL") 'quit-window)
     (dotimes (i (1+ (- ?z ?a)))
       (let* ((key (+ ?a i))
              (sequence (string key)))

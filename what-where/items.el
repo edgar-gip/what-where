@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/items.el --- Items for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -30,7 +32,9 @@
 
 (require 'cl-lib)
 
-(cl-defstruct what-where-item
+(cl-defstruct (what-where-item
+               (:constructor what-where-make-item)
+               (:copier nil))
   focus-start
   focus-end
   type

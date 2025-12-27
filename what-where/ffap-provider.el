@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/ffap-provider.el --- `ffap'-related provider for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -53,14 +55,13 @@
                         (file:is-absolute
                          (*b* (file-name-absolute-p file)))))
              (copy-action (what-where-copy-action file))
-             (find-action (what-where-find-action focus-start))
-             (item (make-what-where-item :focus-start focus-start
-                                         :focus-end focus-end
-                                         :type "File"
-                                         :contents file
-                                         :features features
-                                         :actions (list copy-action
-                                                        find-action))))
+             (find-action (what-where-find-action file))
+             (item (what-where-make-item :focus-start focus-start
+                               :focus-end focus-end
+                               :type "File"
+                               :contents file
+                               :features features
+                               :actions (list copy-action find-action))))
         (what-where-add-item item)))))
 
 (provide 'what-where/ffap-provider)

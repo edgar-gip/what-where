@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/numbers-provider.el --- Number-related provider for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -58,7 +60,7 @@ current point is over a number, or NIL otherwise."
               (focus-start (cl-second match))
               (focus-end (cl-third match)))
           (what-where-numbers-generate-items matched-string
-                                             focus-start focus-end))))))
+                                   focus-start focus-end))))))
 
 (defun what-where-numbers-generate-items (matched-string focus-start focus-end)
   "Generate possible `what-where-items' for MATCHED-STRING, which starts at
@@ -66,26 +68,26 @@ FOCUS-START and ends at FOCUS-END."
   (when (string-match-p "^[01]+$" matched-string)
     (let ((matched-number (string-to-number matched-string 2)))
       (what-where-numbers-generate-base-items 2 matched-number
-                                              focus-start focus-end)))
+                                    focus-start focus-end)))
   (when (string-match-p "^[0-7]+$" matched-string)
     (let ((matched-number (string-to-number matched-string 8)))
       (what-where-numbers-generate-base-items 8 matched-number
-                                              focus-start focus-end)))
+                                    focus-start focus-end)))
   (when (string-match-p "^[[:digit:]]+$" matched-string)
     (let ((matched-number (string-to-number matched-string 10)))
       (what-where-numbers-generate-timestamp-items matched-number
-                                                   focus-start focus-end)
+                                         focus-start focus-end)
       (what-where-numbers-generate-timestamp-items (/ matched-number 1000)
-                                                   focus-start focus-end)
+                                         focus-start focus-end)
       (what-where-numbers-generate-timestamp-items (/ matched-number 1000000)
-                                                   focus-start focus-end)
+                                         focus-start focus-end)
       (what-where-numbers-generate-roman-items matched-number
-                                               focus-start focus-end)
+                                     focus-start focus-end)
       (what-where-numbers-generate-base-items 10 matched-number
-                                              focus-start focus-end)))
+                                    focus-start focus-end)))
   (let ((matched-number (string-to-number matched-string 16)))
     (what-where-numbers-generate-base-items 16 matched-number
-                                            focus-start focus-end)))
+                                  focus-start focus-end)))
 
 (defcustom what-where-numbers-timezone "UTC0"
   "Timezone for the `what-where-numbers' provider."
@@ -108,7 +110,7 @@ FOCUS-START and ends at FOCUS-END."
   :group 'what-where)
 
 (defun what-where-numbers-generate-timestamp-items (matched-number
-                                                    focus-start focus-end)
+                                          focus-start focus-end)
   "Generate possible timestamp-related `what-where-items' for MATCHED-NUMBER,
 which starts at FOCUS-START and ends at FOCUS-END."
   (let* ((matched-time (decode-time matched-number what-where-numbers-timezone))
@@ -134,15 +136,14 @@ which starts at FOCUS-START and ends at FOCUS-END."
                               what-where-numbers-time-max-year)))))
          (copy-action (what-where-copy-action contents))
          (replace-action (what-where-replace-action contents
-                                                    focus-start focus-end))
-         (item (make-what-where-item :focus-start focus-start
-                                     :focus-end focus-end
-                                     :type "Timestamp"
-                                     :contents contents
-                                     :features features
-                                     :actions (list copy-action
-                                                    replace-action))))
-        (what-where-add-item item)))
+                                          focus-start focus-end))
+         (item (what-where-make-item :focus-start focus-start
+                           :focus-end focus-end
+                           :type "Timestamp"
+                           :contents contents
+                           :features features
+                           :actions (list copy-action replace-action))))
+    (what-where-add-item item)))
 
 (defconst what-where-numbers-roman-values
   '((1000 . "M") (900 . "CM") (500 . "D") (400 . "CD")
@@ -156,7 +157,7 @@ which starts at FOCUS-START and ends at FOCUS-END."
   :group 'what-where)
 
 (defun what-where-numbers-generate-roman-items (matched-number
-                                                focus-start focus-end)
+                                      focus-start focus-end)
   "Generate possible roman-number-related `what-where-items' for MATCHED-NUMBER,
 which starts at FOCUS-START and ends at FOCUS-END."
   (when (< matched-number 4000)
@@ -183,14 +184,13 @@ which starts at FOCUS-START and ends at FOCUS-END."
                          (truncate (log (1+ (abs matched-number)) 10)) 1)))
              (copy-action (what-where-copy-action contents))
              (replace-action (what-where-replace-action contents
-                                                        focus-start focus-end))
-             (item (make-what-where-item :focus-start focus-start
-                                         :focus-end focus-end
-                                         :type "Roman"
-                                         :contents contents
-                                         :features features
-                                         :actions (list copy-action
-                                                        replace-action))))
+                                              focus-start focus-end))
+             (item (what-where-make-item :focus-start focus-start
+                               :focus-end focus-end
+                               :type "Roman"
+                               :contents contents
+                               :features features
+                               :actions (list copy-action replace-action))))
         (what-where-add-item item)))))
 
 (defconst what-where-numbers-base-names
@@ -249,7 +249,7 @@ which starts at FOCUS-START and ends at FOCUS-END."
   (format "%x" number))
 
 (defun what-where-numbers-generate-base-items (src-base matched-number
-                                               focus-start focus-end)
+                                              focus-start focus-end)
   "Generate possible base-conversion-related `what-where-items'
 for MATCHED-NUMBER, which starts at FOCUS-START and ends at
 FOCUS-END, and which was expressed in SRC-BASE."
@@ -276,15 +276,15 @@ FOCUS-END, and which was expressed in SRC-BASE."
                           actions:can-replace))
                (copy-action (what-where-copy-action contents))
                (replace-action (what-where-replace-action contents
-                                                          focus-start
-                                                          focus-end))
-               (item (make-what-where-item :focus-start focus-start
-                                           :focus-end focus-end
-                                           :type type-label
-                                           :contents contents
-                                           :features features
-                                           :actions (list copy-action
-                                                          replace-action))))
+                                                focus-start
+                                                focus-end))
+               (item (what-where-make-item :focus-start focus-start
+                                 :focus-end focus-end
+                                 :type type-label
+                                 :contents contents
+                                 :features features
+                                 :actions (list copy-action
+                                                replace-action))))
           (what-where-add-item item)
           (when prefix-parent-mode
             (let* ((prefix (cdr (assq prefix-parent-mode
@@ -294,16 +294,15 @@ FOCUS-END, and which was expressed in SRC-BASE."
                    (type-label* (concat type-label "*"))
                    (copy-action* (what-where-copy-action contents*))
                    (replace-action* (what-where-replace-action contents*
-                                                               focus-start
-                                                               focus-end))
-                   (item*
-                    (make-what-where-item :focus-start focus-start
-                                          :focus-end focus-end
-                                          :type type-label*
-                                          :contents contents*
-                                          :features features*
-                                          :actions (list copy-action*
-                                                         replace-action*))))
+                                                     focus-start
+                                                     focus-end))
+                   (item* (what-where-make-item :focus-start focus-start
+                                      :focus-end focus-end
+                                      :type type-label*
+                                      :contents contents*
+                                      :features features*
+                                      :actions (list copy-action*
+                                                     replace-action*))))
               (what-where-add-item item*))))))))
 
 (provide 'what-where/numbers-provider)

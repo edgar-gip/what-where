@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 ;;; what-where/actions.el --- Standard actions for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
@@ -29,9 +31,10 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'ffap)
 
-(cl-defstruct what-where-action
+(cl-defstruct (what-where-action
+               (:constructor what-where-make-action)
+               (:copier nil))
   shortcut
   description
   function
@@ -40,44 +43,44 @@
 
 (defun what-where-copy-action (contents)
   "Return a `what-where-action' to copy CONTENTS to the kill ring."
-  (let ((fn `(lambda ()
-               (kill-new ,contents))))
-    (make-what-where-action :shortcut ?c :description "(C)opy"
-                            :function fn
-                            :feedback (format "Copied '%s' to kill ring."
-                                              contents)
-                            :is-terminal-p t)))
+  (let ((fn (lambda ()
+              (kill-new contents))))
+    (what-where-make-action :shortcut ?c
+                  :description "(C)opy"
+                  :function fn
+                  :feedback (format "Copied '%s' to kill ring." contents)
+                  :is-terminal-p t)))
 
 (defun what-where-replace-action (contents focus-start focus-end)
   "Return a `what-where-action' to replace the area between FOCUS-START and
 FOCUS-END with CONTENTS."
-  (let ((fn `(lambda ()
-               (with-current-buffer what-where-source-buffer
-                 (save-excursion
-                   (delete-region ,focus-start ,focus-end)
-                   (goto-char ,focus-start)
-                   (insert ,contents))))))
-    (make-what-where-action :shortcut ?r :description "(R)eplace"
-                            :function fn
-                            :is-terminal-p t)))
+  (let ((fn (lambda ()
+              (with-current-buffer what-where-source-buffer
+                (save-excursion
+                  (delete-region focus-start focus-end)
+                  (goto-char focus-start)
+                  (insert contents))))))
+    (what-where-make-action :shortcut ?r
+                  :description "(R)eplace"
+                  :function fn
+                  :is-terminal-p t)))
 
-(defun what-where-find-action (focus-start)
+(defun what-where-find-action (contents)
   "Return a `what-where-action' to find the file starting at FOCUS-START (using
 `ffap')."
-  (let ((fn `(lambda ()
-               (when (and what-where-source-buffer
-                          (buffer-live-p what-where-source-buffer))
-                 (let ((window (get-buffer-window what-where-source-buffer)))
-                   (unless window
-                     (setf window selected-window))
-                   (with-selected-window window
-                     (switch-to-buffer what-where-source-buffer)
-                     (save-excursion
-                       (goto-char ,focus-start)
-                       (call-interactively 'ffap-other-window))))))))
-    (make-what-where-action :shortcut ?f :description "(F)ind"
-                            :function fn
-                            :is-terminal-p 'early)))
+  (let ((fn (lambda ()
+              (when (and what-where-source-buffer
+                         (buffer-live-p what-where-source-buffer))
+                (let ((window (get-buffer-window what-where-source-buffer)))
+                  (unless window
+                    (setf window (selected-window)))
+                  (with-selected-window window
+                    (switch-to-buffer what-where-source-buffer)
+                    (find-file-other-window contents)))))))
+    (what-where-make-action :shortcut ?f
+                  :description "(F)ind"
+                  :function fn
+                  :is-terminal-p 'early)))
 
 (provide 'what-where/actions)
 
