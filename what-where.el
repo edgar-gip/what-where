@@ -41,8 +41,8 @@
 (require 'what-where/report)
 (require 'what-where/utils)
 
-(require 'what-where/ffap)
-(require 'what-where/numbers)
+(require 'what-where/ffap-provider)
+(require 'what-where/numbers-provider)
 
 (defun what-where-generate-items ()
   "Generate and score the set of items for the current point."
@@ -76,6 +76,10 @@
   :init-value nil
   :lighter " WW"
   :keymap what-where-mode-map)
+
+;;;###autoload
+(define-globalized-minor-mode global-what-where-mode what-where-mode
+  (lambda () (what-where-mode t)))
 
 (provide 'what-where)
 

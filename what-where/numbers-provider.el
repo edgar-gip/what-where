@@ -1,4 +1,4 @@
-;;; what-where/numbers.el --- Number-related provider for `what-where'.
+;;; what-where/numbers-provider.el --- Number-related provider for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
 ;;
@@ -306,9 +306,9 @@ FOCUS-END, and which was expressed in SRC-BASE."
                                                          replace-action*))))
               (what-where-add-item item*))))))))
 
-(provide 'what-where/numbers)
+(provide 'what-where/numbers-provider)
 
-;;; what-where/numbers.el ends here
+;;; what-where/numbers-provider.el ends here
 
 ;;; Local Variables:
 ;;; coding: utf-8

@@ -1,4 +1,4 @@
-;;; what-where/ffap.el --- `ffap'-related provider for `what-where'.
+;;; what-where/ffap-provider.el --- `ffap'-related provider for `what-where'.
 ;;
 ;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
 ;;
@@ -30,6 +30,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'ffap)
 
 (require 'what-where/actions)
 (require 'what-where/items)
@@ -62,9 +63,9 @@
                                                         find-action))))
         (what-where-add-item item)))))
 
-(provide 'what-where/ffap)
+(provide 'what-where/ffap-provider)
 
-;;; what-where/ffap.el ends here
+;;; what-where/ffap-provider.el ends here
 
 ;;; Local Variables:
 ;;; coding: utf-8

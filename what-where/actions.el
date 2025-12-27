@@ -29,6 +29,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'ffap)
 
 (cl-defstruct what-where-action
   shortcut
