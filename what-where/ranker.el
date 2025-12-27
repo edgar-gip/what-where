@@ -84,8 +84,7 @@ saved.")
 (defun what-where-ranker-save-model ()
   "Save `what-where-ranker-model' to `what-where-ranker-model-file'."
   (with-demoted-errors
-      (concat "Error serializing `what-where-ranker-model' to "
-              what-where-ranker-model-file ": %s")
+      "Error serializing `what-where-ranker-model': %s"
     (let ((epochs (what-where-ranker-model-epochs what-where-ranker-model))
           (current-weights nil)
           (average-weights nil))
@@ -117,8 +116,7 @@ saved.")
   "Load `what-where-ranker-model' from `what-where-ranker-model-file'."
   (when (file-exists-p what-where-ranker-model-file)
     (with-demoted-errors
-        (concat "Error deserializing `what-where-ranker-model' from "
-                what-where-ranker-model-file ": %s")
+        "Error deserializing `what-where-ranker-model': %s"
       (with-temp-buffer
         (insert-file-contents what-where-ranker-model-file)
         (goto-char (point-min))
