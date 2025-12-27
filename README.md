@@ -61,7 +61,7 @@ visibility.
 
 The model is persisted across sessions in the `what-where-ranker-model-file`,
 which by default is `what-where-ranker.dat` file of the `user-emacs-directory`
-(`~/.Emacs.d/` by default). Saving happens periodically, every
+(`~/.emacs.d/` by default). Saving happens periodically, every
 `what-where-ranker-epochs-to-save-model` selections.
 
 Hyper parameters of the learning process can be customized with
