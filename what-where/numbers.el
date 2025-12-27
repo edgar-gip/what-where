@@ -1,6 +1,6 @@
 ;;; what-where/numbers.el --- Number-related provider for `what-where'.
 ;;
-;; Copyright (C) 2017  Edgar Gonzàlez i Pellicer
+;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
 ;;
 ;; Author: Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
 ;; Keywords: what, where, numbers

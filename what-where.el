@@ -1,6 +1,6 @@
 ;;; what-where.el --- Find what you look at and where you are.
 ;;
-;; Copyright (C) 2017  Edgar Gonzàlez i Pellicer
+;; Copyright (C) 2017-2025  Edgar Gonzàlez i Pellicer
 ;;
 ;; Author: Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
 ;; Keywords: what, where
